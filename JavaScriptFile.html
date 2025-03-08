@@ -308,6 +308,11 @@
     // Update summary
     document.getElementById('summarySheet').textContent = sheetName;
     
+    // IMPORTANT: Reset visibility state of dropdown containers
+    document.getElementById('emailColumnGroup').classList.add('hidden');
+    document.getElementById('ccColumnGroup').classList.add('hidden');
+    document.getElementById('bccColumnGroup').classList.add('hidden');
+    
     // Show loading notification
     const loadingNotification = showNotification('Loading columns...', 'info', 0);
     
@@ -325,13 +330,19 @@
         // Handle the result
         handleSheetColumns(result.headers);
         
-        // Show CC/BCC toggle option once we have columns
-        toggleVisibility('ccBccToggleGroup', true);
+        // IMPORTANT: Ensure these are explicitly shown, not toggled
+        document.getElementById('emailColumnGroup').classList.remove('hidden');
+        document.getElementById('ccBccToggleGroup').classList.remove('hidden');
         
         // Store recipient count if available (will be 0 initially)
         spreadsheetData.recipientCount = result.recipientCount || 0;
         document.getElementById('summaryRecipientCount').textContent = 
           result.recipientCount ? result.recipientCount : '-';
+          
+        // Add recipient count toast notification
+        if (result.recipientCount > 0) {
+          showNotification(`Found ${result.recipientCount} potential recipients`, 'success', config.toastDuration);
+        }
       })
       .withFailureHandler(function(error) {
         // Remove loading notification
@@ -473,7 +484,7 @@
     showNotification('Copied: ' + text, 'success', config.toastDuration);
   }
 
-  // Function to send test email with timeout
+  // Function to send test email with improved debugging and timeout handling
   function sendTestEmail() {
     const testEmail = document.getElementById('testEmailAddress').value.trim();
     if (!testEmail) {
@@ -510,6 +521,12 @@
     const cc = document.getElementById('ccField') ? document.getElementById('ccField').value : '';
     const bcc = document.getElementById('bccField') ? document.getElementById('bccField').value : '';
     
+    // Add debugging
+    console.log('Sending test email to:', testEmail);
+    console.log('Subject:', subjectLine);
+    console.log('From:', fromEmail);
+    console.log('Display name:', fromName);
+    
     // Set timeout to prevent infinite waiting
     const timeoutDuration = 30000; // 30 seconds
     let isComplete = false;
@@ -533,6 +550,9 @@
         isComplete = true;
         clearTimeout(timeoutId);
         
+        // Add detailed logging
+        console.log('Test email result:', result);
+        
         // Restore button state
         sendPreviewBtn.innerHTML = btnText;
         sendPreviewBtn.disabled = false;
@@ -552,6 +572,9 @@
         isComplete = true;
         clearTimeout(timeoutId);
         
+        // Add detailed logging
+        console.error('Test email error:', error);
+        
         // Restore button state
         sendPreviewBtn.innerHTML = btnText;
         sendPreviewBtn.disabled = false;
@@ -564,7 +587,12 @@
         // Show error
         showNotification('Error sending test email: ' + (error.message || 'Unknown error'), 'error', config.toastDuration);
       })
-      .sendTestEmail(testEmail, subjectLine, fromEmail, fromName, cc, bcc);
+      // IMPORTANT: Use the correct server function name
+      .sendTestEmailWithData(testEmail, subjectLine, fromEmail, fromName, cc, bcc, {
+        replacePlaceholders: true,
+        spreadsheetId: spreadsheetData.id, 
+        sheetName: spreadsheetData.sheetName
+      });
   }
 
   // Function to execute mail merge - now called directly
@@ -831,11 +859,17 @@
         
         // Update UI
         document.getElementById('summaryRecipientCount').textContent = count;
+        
+        // Add toast notification for recipient count
+        showNotification(`Found ${count} potential recipients in the "${emailColumn}" column`, 'info', config.toastDuration);
       })
       .withFailureHandler(function(error) {
         // Show error
         document.getElementById('summaryRecipientCount').textContent = 'Error';
         console.error('Error counting recipients:', error);
+        
+        // Show error notification
+        showNotification('Error determining recipient count', 'error', config.toastDuration);
       })
       .getRecipientCount(spreadsheetData.id, spreadsheetData.sheetName, emailColumn);
   }
