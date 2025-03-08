@@ -564,81 +564,95 @@ function onOpen() {
     return result;
   }
   
-  /**
-   * Sends a test email.
-   * @param {string} recipients - Comma-separated list of email addresses.
-   * @param {string} subject - The email subject.
-   * @param {string} fromEmail - The sender's email address.
-   * @param {string} fromName - The sender's display name.
-   * @param {string} cc - Optional CC addresses.
-   * @param {string} bcc - Optional BCC addresses.
-   * @param {Object} options - Additional options for test email.
-   * @return {Object} Status object with success flag and message.
-   */
-  function sendTestEmailWithData(recipients, subject, fromEmail, fromName, cc, bcc, options) {
+/**
+ * Sends a test email.
+ * @param {string} recipients - Comma-separated list of email addresses.
+ * @param {string} subject - The email subject.
+ * @param {string} fromEmail - The sender's email address.
+ * @param {string} fromName - The sender's display name.
+ * @param {string} cc - Optional CC addresses.
+ * @param {string} bcc - Optional BCC addresses.
+ * @param {Object} options - Additional options for test email.
+ * @return {Object} Status object with success flag and message.
+ */
+function sendTestEmailWithData(recipients, subject, fromEmail, fromName, cc, bcc, options) {
+  try {
+    // Add logging
+    Logger.log('Sending test email with parameters:');
+    Logger.log('Recipients: ' + recipients);
+    Logger.log('Subject: ' + subject);
+    Logger.log('From: ' + fromEmail);
+    
+    // Get document content as HTML
+    const body = getDocContent();
+    let htmlBody = body;
+    
+    // Use try/catch blocks for each operation
     try {
-      // Get document content as HTML
-      const body = getDocContent();
-      let htmlBody = body;
-      
       // Replace placeholders if requested and spreadsheet data is provided
       if (options && options.replacePlaceholders && options.spreadsheetId && options.sheetName) {
-        try {
-          // Get first row of data for placeholders
-          const data = getSpreadsheetData(options.spreadsheetId, options.sheetName);
-          if (data.rows.length > 0) {
-            const firstRow = data.rows[0];
-            
-            // Replace placeholders in subject and body
-            subject = replacePlaceholders(subject, data.headers, firstRow);
-            htmlBody = replacePlaceholders(body, data.headers, firstRow);
-          }
-        } catch (e) {
-          Logger.log('Error replacing placeholders: ' + e.message);
-          // Continue with original content if placeholder replacement fails
+        Logger.log('Attempting to replace placeholders');
+        // Get first row of data for placeholders
+        const data = getSpreadsheetData(options.spreadsheetId, options.sheetName);
+        if (data.rows.length > 0) {
+          const firstRow = data.rows[0];
+          
+          // Replace placeholders in subject and body
+          subject = replacePlaceholders(subject, data.headers, firstRow);
+          htmlBody = replacePlaceholders(body, data.headers, firstRow);
         }
       }
-      
-      // Split comma-separated emails and trim whitespace
-      const emailList = recipients.split(',').map(email => email.trim());
-      
-      // Create email options
-      const emailOptions = {
-        htmlBody: htmlBody,
-        name: fromName || undefined
-      };
-      
-      // Set optional fields
-      if (cc) {
-        emailOptions.cc = cc;
-      }
-      
-      if (bcc) {
-        emailOptions.bcc = bcc;
-      }
-      
-      // Set from address if different from the user's address and if it's a delegated address
-      if (fromEmail && fromEmail !== Session.getActiveUser().getEmail()) {
-        emailOptions.from = fromEmail;
-      }
-      
-      for (const email of emailList) {
-        if (email) {
-          GmailApp.sendEmail(email, subject, "", emailOptions);
-        }
-      }
-      
-      return {
-        success: true,
-        message: `Test email sent to: ${recipients}`
-      };
-    } catch (e) {
-      return {
-        success: false,
-        message: "Error sending test email: " + e.message
-      };
+    } catch (placeholderError) {
+      Logger.log('Error replacing placeholders: ' + placeholderError.message);
+      // Continue with original content
     }
+    
+    // Split comma-separated emails and trim whitespace
+    const emailList = recipients.split(',').map(email => email.trim());
+    
+    // Create email options
+    const emailOptions = {
+      htmlBody: htmlBody,
+      name: fromName || undefined
+    };
+    
+    // Set optional fields
+    if (cc) {
+      emailOptions.cc = cc;
+    }
+    
+    if (bcc) {
+      emailOptions.bcc = bcc;
+    }
+    
+    // Set from address if different from the user's address and if it's a delegated address
+    if (fromEmail && fromEmail !== Session.getActiveUser().getEmail()) {
+      emailOptions.from = fromEmail;
+    }
+    
+    Logger.log('Sending email with options: ' + JSON.stringify(emailOptions));
+    
+    for (const email of emailList) {
+      if (email) {
+        GmailApp.sendEmail(email, subject, "", emailOptions);
+      }
+    }
+    
+    Logger.log('Test email sent successfully');
+    
+    return {
+      success: true,
+      message: `Test email sent to: ${recipients}`
+    };
+  } catch (e) {
+    Logger.log('Error in sendTestEmailWithData: ' + e.message);
+    Logger.log('Stack trace: ' + e.stack);
+    return {
+      success: false,
+      message: "Error sending test email: " + e.message
+    };
   }
+}
   
   /**
    * Executes the mail merge.
