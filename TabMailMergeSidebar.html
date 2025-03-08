@@ -516,17 +516,28 @@
     <div id="dataSourceContent" class="section-content">
       <div class="form-group">
         <label for="spreadsheetUrl">Spreadsheet URL or ID <span class="tooltip help-icon"><span class="tooltip-text">Paste your Google Sheets URL or ID to connect your data source</span></span></label>
-        <div class="input-group">
-          <input type="text" id="spreadsheetUrl" placeholder="Paste spreadsheet URL or ID" aria-label="Spreadsheet URL or ID" onchange="validateSpreadsheetRealtime()" onpaste="setTimeout(validateSpreadsheetRealtime, 0)">
-          <button id="validateBtn" onclick="validateSpreadsheet()" aria-label="Validate spreadsheet">Validate</button>
-        </div>
+        <input type="text" id="spreadsheetUrl" placeholder="Paste spreadsheet URL or ID" aria-label="Spreadsheet URL or ID">
+      </div>
+      
+      <div class="form-group">
+        <button id="validateBtn" onclick="validateSpreadsheet()" aria-label="Validate spreadsheet" class="secondary">Validate</button>
+      </div>
+      
+      <!-- Load Sheets button (hidden by default) -->
+      <div id="loadSheetsGroup" class="form-group hidden">
+        <button id="loadSheetsBtn" onclick="loadSheetNames()" aria-label="Load sheets" class="secondary">Load Sheets</button>
       </div>
       
       <div id="sheetSelectGroup" class="form-group hidden">
         <label for="sheetSelect">Select Sheet</label>
-        <select id="sheetSelect" onchange="loadSheetColumns()" aria-label="Select Sheet">
+        <select id="sheetSelect" aria-label="Select Sheet">
           <option value="">Select a sheet...</option>
         </select>
+      </div>
+      
+      <!-- Load Columns button (hidden by default) -->
+      <div id="loadColumnsGroup" class="form-group hidden">
+        <button id="loadColumnsBtn" onclick="loadSheetColumns()" aria-label="Load columns" class="secondary">Load Columns</button>
       </div>
       
       <div id="emailColumnGroup" class="form-group hidden">
@@ -718,6 +729,9 @@
             
             <div class="grid-label">BCC Column:</div>
             <div class="grid-value" id="summaryBccColumn">-</div>
+            
+            <div class="grid-label">Subject:</div>
+            <div class="grid-value" id="summarySubject">-</div>
             
             <div class="grid-label">Display Name:</div>
             <div class="grid-value" id="summaryFromName">-</div>
